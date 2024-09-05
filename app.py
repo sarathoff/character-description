@@ -10,7 +10,7 @@ st.set_page_config(
 )
 
 # Directly set the API key here (not recommended for production)
-GOOGLE_API_KEY = "AIzaSyAW7LpbQSJJDQv4t_leWEJEu4LorMvtgsk"
+GOOGLE_API_KEY = "AIzaSyDL_nopsrrujLZJuMjVbSLxjkC8B11LOMw"
 
 # Set up Google Gemini-Pro AI model
 gen_ai.configure(api_key=GOOGLE_API_KEY)
@@ -58,7 +58,8 @@ def generate_random_character_description():
 
 # Function to validate and generate character description based on user input
 def validate_and_generate_description(name, gender, age, description):
-    if any(word in description.lower() for word in ["nudity", "adult", "explicit"]):
+    # Check for explicit or adult content
+    if any(word in description.lower() for word in ["nudity", "adult", "explicit", "sexual"]):
         return generate_random_character_description(), True
     
     # Create prompt based on user input
@@ -73,12 +74,17 @@ def validate_and_generate_description(name, gender, age, description):
     Please include specific details on physical features, clothing, and any distinguishing marks to create a vivid visual image.
     """
 
-    # Generate character description using the Gemini-Pro model
-    response = model.generate_content([prompt])
-    character_description = response.text
+    # Attempt to generate character description using the Gemini-Pro model
+    try:
+        response = model.generate_content([prompt])
+        character_description = response.text
 
-    if any(word in character_description.lower() for word in ["nudity", "adult", "explicit"]):
-        return generate_random_character_description(), True
+        # Check the generated response for inappropriate content
+        if any(word in character_description.lower() for word in ["nudity", "adult", "explicit", "sexual"]):
+            return generate_random_character_description(), True
+    except:
+        # If the LLM fails to respond
+        return generate_random_character_description(), False
     
     return character_description, False
 
@@ -98,7 +104,7 @@ if option == 'Provide Inputs':
         if description:
             character_description, is_violation = validate_and_generate_description(name, gender, age, description)
             if is_violation:
-                st.warning("Your input contains inappropriate content. Please avoid using explicit words or adult content. A random character description has been generated instead.")
+                st.warning("Your input contains inappropriate content or violates the policy. Please avoid using explicit words or adult content. A random character description has been generated instead.")
         else:
             character_description = generate_random_character_description()
 
@@ -118,9 +124,13 @@ elif option == 'Generate Random Character':
             Please include specific details on physical features, clothing, and any distinguishing marks to create a vivid visual image.
             """
             
-            # Generate character description using the Gemini-Pro model
-            response = model.generate_content([prompt])
-            character_description = response.text
+            try:
+                # Generate character description using the Gemini-Pro model
+                response = model.generate_content([prompt])
+                character_description = response.text
+            except:
+                st.warning("Something went wrong while generating the character description. A random character description has been generated as a fallback.")
+                character_description = generate_random_character_description()
 
         st.subheader("Optimized Character Description for Image Generation")
         st.write(character_description)
